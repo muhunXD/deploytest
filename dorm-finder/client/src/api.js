@@ -1,5 +1,19 @@
-// Base URL from .env (Vite) — set VITE_API_URL=http://localhost:4000
-export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+// Resolve the API base URL in this order:
+// 1) VITE_API_URL provided at build time (for cross-domain setups)
+// 2) window.location.origin at runtime (when client and API are on same host)
+// 3) localhost fallback for development
+export const API_BASE = (() => {
+  try {
+    const envBase = (import.meta?.env && import.meta.env.VITE_API_URL) || "";
+    if (typeof envBase === "string" && envBase.trim()) return envBase.trim();
+  } catch (_) {
+    // ignore — import.meta.env not available
+  }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  return "http://localhost:4000";
+})();
 
 function applyQueryParams(url, params) {
   for (const [key, value] of Object.entries(params || {})) {
@@ -26,10 +40,7 @@ function applyQueryParams(url, params) {
   }
 }
 
-/**
- * Fetch dorms with optional bounds.
- * Expects an object like { north, south, east, west } (numbers)
- */
+// Fetch dorms with optional bounds
 export async function fetchDorms(params = {}) {
   const url = new URL("/api/dorms", API_BASE);
   applyQueryParams(url, params);
@@ -38,10 +49,7 @@ export async function fetchDorms(params = {}) {
   return res.json();
 }
 
-/**
- * Fetch points of interest with optional text/category and bounds.
- * Accepts: { q, category, north, south, east, west }
- */
+// Fetch points of interest with optional text/category and bounds
 export async function fetchPois(params = {}) {
   const url = new URL("/api/pois", API_BASE);
   applyQueryParams(url, params);
@@ -49,3 +57,4 @@ export async function fetchPois(params = {}) {
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
 }
+
