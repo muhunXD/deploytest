@@ -380,7 +380,10 @@ if (process.env.NODE_ENV === "production") {
   const clientDist = path.join(__dirname, "../client/dist");
   app.use(express.static(clientDist));
 
-  app.get("*", (_req, res) => {
+  // Express 5 uses path-to-regexp v6, where "*" as a path is invalid
+  // and throws "Missing parameter name" at startup. Use a RegExp
+  // catch-all that excludes API routes and serves the SPA index.
+  app.get(/^(?!\/api).*/, (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
