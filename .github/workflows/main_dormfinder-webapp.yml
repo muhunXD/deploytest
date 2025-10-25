@@ -26,26 +26,26 @@ jobs:
 
       # Step 1 — Build Vite frontend
       - name: Install and build client
-        working-directory: ./dorm-finder/dorm-finder/client
+        working-directory: ./dorm-finder/client
         run: |
           npm install
           npm run build
 
       # Step 2 — Install backend dependencies
       - name: Install server dependencies
-        working-directory: ./dorm-finder/dorm-finder/server
+        working-directory: ./dorm-finder/server
         run: npm install
 
       # Step 3 — Copy dist to server (for Express static serve)
       - name: Copy client dist to server
         run: |
-          mkdir -p dorm-finder/dorm-finder/server/client/dist
-          cp -r dorm-finder/dorm-finder/client/dist/* dorm-finder/dorm-finder/server/client/dist/
+          mkdir -p dorm-finder/server/client/dist
+          cp -r dorm-finder/client/dist/* dorm-finder/server/client/dist/
 
       # Step 4 — Zip for deployment
       - name: Zip artifact
         run: |
-          cd dorm-finder/dorm-finder
+          cd dorm-finder
           zip -r ../../release.zip server
 
       - name: Upload artifact for deployment
