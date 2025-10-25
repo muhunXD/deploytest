@@ -1,0 +1,17 @@
+# node modules
+node_modules/
+**/node_modules/
+
+# env files
+client/.env
+server/.env
+
+# build outputs
+client/dist
+server/build
+
+# logs
+*.log
+
+# docker volumes
+docker-data/

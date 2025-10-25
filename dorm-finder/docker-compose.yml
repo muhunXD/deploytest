@@ -1,0 +1,37 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: dorm-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  server:
+    build:
+      context: ./server
+    container_name: dorm-server
+    ports:
+      - "4000:4000"
+    environment:
+      MONGODB_URI: "mongodb://mongo:27017/dorm-finder"
+      PORT: "4000"
+      NODE_ENV: "development"
+      ALLOWED_ORIGINS: "http://localhost:5173"
+    depends_on:
+      - mongo
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  client:
+    build:
+      context: ./client
+    container_name: dorm-client
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:
