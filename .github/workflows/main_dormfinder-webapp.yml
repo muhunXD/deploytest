@@ -1,5 +1,5 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# Works with Vite frontend (client/) and Node backend (server/)
+# Works with Vite frontend (client/) and Node backend (server/) inside dorm-finder/dorm-finder/
 
 name: Build and deploy Node.js app to Azure Web App - dormfinder-webapp
 
@@ -26,25 +26,27 @@ jobs:
 
       # Step 1 — Build Vite frontend
       - name: Install and build client
-        working-directory: ./client
+        working-directory: ./dorm-finder/dorm-finder/client
         run: |
           npm install
           npm run build
 
       # Step 2 — Install backend dependencies
       - name: Install server dependencies
-        working-directory: ./server
+        working-directory: ./dorm-finder/dorm-finder/server
         run: npm install
 
       # Step 3 — Copy dist to server (for Express static serve)
       - name: Copy client dist to server
         run: |
-          mkdir -p server/client/dist
-          cp -r client/dist/* server/client/dist/
+          mkdir -p dorm-finder/dorm-finder/server/client/dist
+          cp -r dorm-finder/dorm-finder/client/dist/* dorm-finder/dorm-finder/server/client/dist/
 
       # Step 4 — Zip for deployment
       - name: Zip artifact
-        run: zip -r release.zip server
+        run: |
+          cd dorm-finder/dorm-finder
+          zip -r ../../release.zip server
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
