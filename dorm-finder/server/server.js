@@ -397,6 +397,8 @@ if (process.env.NODE_ENV === "production") {
     }
   }
 
+  const clientUrl = process.env.CLIENT_URL && String(process.env.CLIENT_URL).trim();
+
   if (clientDist) {
     console.log(`[static] serving client from: ${clientDist}`);
     app.use(express.static(clientDist));
@@ -414,6 +416,24 @@ if (process.env.NODE_ENV === "production") {
       if (req.path && req.path.startsWith("/api")) return next();
       return sendIndex(req, res);
     });
+  } else if (clientUrl) {
+    console.log(`[static] no local build. Redirecting to CLIENT_URL: ${clientUrl}`);
+
+    const redirectToClient = (req, res) => {
+      try {
+        const target = new URL(req.originalUrl || '/', clientUrl);
+        res.redirect(302, target.toString());
+      } catch (_e) {
+        res.redirect(302, clientUrl);
+      }
+    };
+
+    app.get("/", redirectToClient);
+    app.get(/^(?!\/api).*/, redirectToClient);
+    app.use((req, res, next) => {
+      if (req.path && req.path.startsWith("/api")) return next();
+      return redirectToClient(req, res);
+    });
   } else {
     console.warn(
       "[static] client build not found. Set CLIENT_DIST or deploy client/dist next to the server."
@@ -422,7 +442,9 @@ if (process.env.NODE_ENV === "production") {
       res.status(200).send(
         "<html><head><meta charset='utf-8'><title>Dorm Finder</title></head><body>" +
           "<h2>API is running</h2>" +
-          "<p>No front-end build found. Deploy client/dist or set CLIENT_DIST.</p>" +
+          "<p>No front-end build found. Deploy client/dist or set CLIENT_DIST." +
+          (clientUrl ? " Currently configured CLIENT_URL is: " + clientUrl : "") +
+          "</p>" +
           "<p><a href='/api/health'>/api/health</a></p>" +
         "</body></html>"
       );
