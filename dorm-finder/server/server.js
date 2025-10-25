@@ -372,18 +372,54 @@ app.use((err, req, res, _next) => {
 
 // --- serve frontend build (Vite) ---
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 if (process.env.NODE_ENV === "production") {
-  const clientDist = path.join(__dirname, "../client/dist");
-  app.use(express.static(clientDist));
+  const candidateRoots = [
+    process.env.CLIENT_DIST && path.resolve(process.env.CLIENT_DIST),
+    path.join(__dirname, "../client/dist"), // monorepo default
+    path.join(__dirname, "client-dist"), // allow bundling dist inside server/
+    path.join(__dirname, "public"), // generic public dir
+  ].filter(Boolean);
 
-  // Express 5 uses path-to-regexp v6, where "*" as a path is invalid
-  // and throws "Missing parameter name" at startup. Use a RegExp
-  // catch-all that excludes API routes and serves the SPA index.
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(clientDist, "index.html"));
-  });
+  let clientDist = null;
+  for (const p of candidateRoots) {
+    try {
+      if (fs.existsSync(path.join(p, "index.html"))) {
+        clientDist = p;
+        break;
+      }
+    } catch (_e) {
+      // ignore
+    }
+  }
+
+  if (clientDist) {
+    console.log(`[static] serving client from: ${clientDist}`);
+    app.use(express.static(clientDist));
+
+    // Express 5 uses path-to-regexp v6, where "*" as a path is invalid
+    // and throws "Missing parameter name" at startup. Use a RegExp
+    // catch-all that excludes API routes and serves the SPA index.
+    app.get(/^(?!\/api).*/, (_req, res) => {
+      res.sendFile(path.join(clientDist, "index.html"));
+    });
+  } else {
+    console.warn(
+      "[static] client build not found. Set CLIENT_DIST or deploy client/dist next to the server."
+    );
+    // Provide a friendly placeholder instead of 404
+    app.get(/^(?!\/api).*/, (_req, res) => {
+      res.status(200).send(
+        "<html><head><meta charset='utf-8'><title>Dorm Finder</title></head><body>" +
+          "<h2>API is running</h2>" +
+          "<p>No front-end build found. Deploy client/dist or set CLIENT_DIST.</p>" +
+          "<p><a href='/api/health'>/api/health</a></p>" +
+        "</body></html>"
+      );
+    });
+  }
 }
