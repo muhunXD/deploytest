@@ -401,18 +401,24 @@ if (process.env.NODE_ENV === "production") {
     console.log(`[static] serving client from: ${clientDist}`);
     app.use(express.static(clientDist));
 
-    // Express 5 uses path-to-regexp v6, where "*" as a path is invalid
-    // and throws "Missing parameter name" at startup. Use a RegExp
-    // catch-all that excludes API routes and serves the SPA index.
-    app.get(/^(?!\/api).*/, (_req, res) => {
+    const sendIndex = (_req, res) => {
       res.sendFile(path.join(clientDist, "index.html"));
+    };
+
+    // Ensure root works even if regex ever fails to match
+    app.get("/", sendIndex);
+    // Express 5: use RegExp catch-all for non-API routes
+    app.get(/^(?!\/api).*/, sendIndex);
+    // As a last safety net, handle any other method (e.g., HEAD)
+    app.use((req, res, next) => {
+      if (req.path && req.path.startsWith("/api")) return next();
+      return sendIndex(req, res);
     });
   } else {
     console.warn(
       "[static] client build not found. Set CLIENT_DIST or deploy client/dist next to the server."
     );
-    // Provide a friendly placeholder instead of 404
-    app.get(/^(?!\/api).*/, (_req, res) => {
+    const placeholder = (_req, res) => {
       res.status(200).send(
         "<html><head><meta charset='utf-8'><title>Dorm Finder</title></head><body>" +
           "<h2>API is running</h2>" +
@@ -420,6 +426,13 @@ if (process.env.NODE_ENV === "production") {
           "<p><a href='/api/health'>/api/health</a></p>" +
         "</body></html>"
       );
+    };
+    app.get("/", placeholder);
+    app.get(/^(?!\/api).*/, placeholder);
+    // Safety net for any other methods (e.g., HEAD)
+    app.use((req, res, next) => {
+      if (req.path && req.path.startsWith("/api")) return next();
+      return placeholder(req, res);
     });
   }
 }
