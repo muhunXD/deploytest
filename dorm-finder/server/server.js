@@ -114,6 +114,9 @@ mongoose.connection.on("disconnected", () =>
     await mongoose.connect(databaseUri, {
       autoIndex: !isProduction,
       serverSelectionTimeoutMS: Number(process.env.MONGODB_TIMEOUT_MS) || 5000,
+      ...(process.env.MONGODB_DBNAME
+        ? { dbName: process.env.MONGODB_DBNAME }
+        : {}),
     });
   } catch (error) {
     console.error("[mongo] initial connection failed:", error.message);
