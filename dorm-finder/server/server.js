@@ -91,6 +91,21 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, ts: Date.now() });
 });
 
+// Optional: lightweight DB info to help verify which database is in use
+app.get("/api/health/db", async (_req, res, next) => {
+  try {
+    const name = mongoose.connection?.name || null;
+    let collections = [];
+    if (mongoose.connection?.db) {
+      const cursor = await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray();
+      collections = cursor.map((c) => c.name).sort();
+    }
+    res.json({ ok: true, dbName: name, collections });
+  } catch (e) {
+    next(e);
+  }
+});
+
 const DEFAULT_DB_URI = "mongodb://127.0.0.1:27017/dorm-finder";
 const databaseUri =
   process.env.MONGODB_URI || process.env.MONGO_URI || DEFAULT_DB_URI;
@@ -101,7 +116,14 @@ if (!process.env.MONGODB_URI && !process.env.MONGO_URI) {
   );
 }
 
-mongoose.connection.on("connected", () => console.log("[mongo] connected"));
+mongoose.connection.on("connected", async () => {
+  try {
+    const name = mongoose.connection.name;
+    console.log(`[mongo] connected (db: ${name})`);
+  } catch {
+    console.log("[mongo] connected");
+  }
+});
 mongoose.connection.on("error", (error) =>
   console.error("[mongo] connection error:", error)
 );
